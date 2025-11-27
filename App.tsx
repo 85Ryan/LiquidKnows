@@ -275,9 +275,10 @@ const renderThemePreview = (themeId: ThemeStyle) => {
 const safeGetItem = (key: string, defaultValue: string | null = null): string | null => {
   if (typeof window === 'undefined') return defaultValue;
   try {
-    return localStorage.getItem(key) || defaultValue;
+    const storage = window.localStorage;
+    return storage.getItem(key) || defaultValue;
   } catch (e) {
-    console.warn(`Failed to access localStorage for key ${key}`, e);
+    console.warn(`Failed to access localStorage for key ${key} - using default`, e);
     return defaultValue;
   }
 };
@@ -286,8 +287,11 @@ const safeGetItem = (key: string, defaultValue: string | null = null): string | 
 const safeSetItem = (key: string, value: string) => {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(key, value);
+    const storage = window.localStorage;
+    storage.setItem(key, value);
   } catch (e) {
+    // Cannot write to storage (e.g. quota exceeded or access denied)
+    // Silently fail or log warning
     console.warn(`Failed to set localStorage for key ${key}`, e);
   }
 };

@@ -4,6 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>灵感卡片</title>
+    <!-- Storage Guard: Polyfill localStorage for restricted environments -->
+    <script>
+      (function() {
+        function createStorageMock() {
+          var store = {};
+          return {
+            getItem: function(key) { return store[key] || null; },
+            setItem: function(key, value) { store[key] = String(value); },
+            removeItem: function(key) { delete store[key]; },
+            clear: function() { store = {}; },
+            key: function(i) { var keys = Object.keys(store); return keys[i] || null; },
+            get length() { return Object.keys(store).length; }
+          };
+        }
+        try {
+          var testKey = '__storage_test__';
+          window.localStorage.setItem(testKey, testKey);
+          window.localStorage.removeItem(testKey);
+        } catch (e) {
+          console.warn('LocalStorage access denied. Using in-memory mock to prevent crash.');
+          Object.defineProperty(window, 'localStorage', { value: createStorageMock() });
+          Object.defineProperty(window, 'sessionStorage', { value: createStorageMock() });
+        }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,11 +40,11 @@
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
-              'sans-sc': ['Noto Sans SC', 'sans-serif'], // Added for Source Han Sans style
-              'serif-sc': ['Noto Serif SC', 'serif'], // Added for Source Han Serif style
+              'sans-sc': ['Noto Sans SC', 'sans-serif'],
+              'serif-sc': ['Noto Serif SC', 'serif'],
               display: ['Space Grotesk', 'sans-serif'],
-              serif: ['Playfair Display', 'serif'], // 默认衬线字体更新为 Playfair
-              bodySerif: ['Lora', 'serif'], // 正文衬线字体的新工具类
+              serif: ['Playfair Display', 'serif'],
+              bodySerif: ['Lora', 'serif'],
             },
             animation: {
               'blob': 'blob 7s infinite',
