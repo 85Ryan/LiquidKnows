@@ -129,7 +129,7 @@ export const NoteDotCard: React.FC<CardProps> = ({
                 </div>
 
                 {/* 主要内容 */}
-                <div className="flex-1 flex flex-col justify-center relative z-20 px-10">
+                <div className="flex-1 flex flex-col justify-center relative z-20 px-4">
                     {isCover ? (
                       <div className="flex flex-col h-full justify-center">
                         {/* 大标题：思源黑体，极粗，深色 */}
