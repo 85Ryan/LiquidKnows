@@ -1,0 +1,5 @@
+{
+  "name": "灵感卡片 - 智能知识卡片生成器",
+  "description": "一个具有极光流体美学的 Web 应用，利用 Gemini AI 将长文本转化为精美、易于分享的知识卡片。",
+  "requestFramePermissions": []
+}
