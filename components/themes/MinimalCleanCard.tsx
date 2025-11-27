@@ -77,7 +77,7 @@ export const MinimalCleanCard: React.FC<CardProps> = ({
                                         {customTags.map((tag, i) => (
                                             <div key={i} className="group relative flex items-center gap-3">
                                                 <span className="w-1.5 h-1.5 bg-gray-300 rounded-full group-hover:bg-gray-800 transition-colors duration-300"></span>
-                                                <span className="block text-xl font-serif-sc font-medium text-gray-600 group-hover:text-gray-900 transition-colors duration-300 tracking-wide">
+                                                <span className="block text-lg font-serif-sc font-medium text-gray-600 group-hover:text-gray-900 transition-colors duration-300">
                                                     {tag}
                                                 </span>
                                             </div>
@@ -92,7 +92,7 @@ export const MinimalCleanCard: React.FC<CardProps> = ({
                         </div>
                     </div>
 
-                    <div className="flex-1 py-16 px-12 flex flex-col justify-center relative z-20">
+                    <div className="flex-1 py-16 pr-12 pl-6 flex flex-col justify-center relative z-20">
                         {isCover ? (
                             <div className="flex flex-col justify-between h-full py-10">
                                 <div className="border-b border-gray-200 pb-12 mb-10">
