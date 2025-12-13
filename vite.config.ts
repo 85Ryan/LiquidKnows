@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   // 加载环境变量
   // process.cwd() 是项目根目录
   // '' 表示加载所有环境变量，不管是否有 VITE_ 前缀
-  const env = loadEnv(mode, process.cwd(), '');
+  const env = loadEnv(mode, (process as any).cwd(), '');
 
   return {
     plugins: [react()],

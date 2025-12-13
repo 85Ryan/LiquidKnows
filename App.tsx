@@ -12,6 +12,8 @@ const SunIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBo
 const MoonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>;
 const ChevronLeft = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>;
 const ChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>;
+const KeyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>;
+const XMarkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 
 // 卡片设置图标 (file-sliders)
 const SettingsIcon = () => (
@@ -79,7 +81,8 @@ const STORAGE_KEYS = {
   THEME: 'lk_theme',
   AURORA_GRADIENT: 'lk_aurora_gradient',
   NEON_BG_INDEX: 'lk_neon_bg_index', // 新增：赛博流体背景 Key
-  THEME_MODE: 'lk_theme_mode'
+  THEME_MODE: 'lk_theme_mode',
+  USER_API_KEY: 'lk_user_api_key' // 恢复：用户 API Key
 };
 
 // 极光流体专属渐变选项 (与 LiquidAuroraCard.tsx 中定义的顺序对应)
@@ -347,6 +350,32 @@ export default function App() {
     return saved ? parseInt(saved, 10) : 0;
   });
 
+  // --- API Key 状态恢复 ---
+  const [userApiKey, setUserApiKey] = useState(() => 
+    safeGetItem(STORAGE_KEYS.USER_API_KEY, "")!
+  );
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  // 临时状态，用于 Modal 输入框，避免每次输入都触发 Effect
+  const [tempApiKey, setTempApiKey] = useState("");
+
+  // 打开 Modal 时，将当前 key 填入输入框
+  useEffect(() => {
+    if (isKeyModalOpen) {
+      setTempApiKey(userApiKey);
+    }
+  }, [isKeyModalOpen, userApiKey]);
+
+  const handleSaveKey = () => {
+    setUserApiKey(tempApiKey.trim());
+    setIsKeyModalOpen(false);
+  };
+
+  // 持久化用户 API Key
+  useEffect(() => {
+    safeSetItem(STORAGE_KEYS.USER_API_KEY, userApiKey);
+  }, [userApiKey]);
+
+
   // --- 暗黑模式逻辑重构 ---
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // 1. 优先检查本地存储
@@ -440,14 +469,21 @@ export default function App() {
     setIsLoading(true);
     
     try {
-        const metadata = await generateMetadata(inputText);
+        // 传递用户 API Key
+        const metadata = await generateMetadata(inputText, userApiKey);
         setCoverSubtitle(metadata.subtitle);
         setCoverTags(metadata.tags);
         // 注意：cards 的更新由 useEffect 自动处理
         setActiveIndex(0);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("生成元数据失败，请检查 API Key");
+      // 如果错误消息包含 key 相关字眼，提示用户
+      if (e.message.includes("API Key")) {
+        alert(e.message);
+        setIsKeyModalOpen(true);
+      } else {
+        alert("生成元数据失败，请检查网络或 API Key 配置");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -575,6 +611,63 @@ export default function App() {
         ))}
       </div>
 
+      {/* --- API Key 设置弹窗 --- */}
+      {isKeyModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
+           <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/20 animate-fade-in-scale transition-all duration-300 transform scale-100">
+              <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
+                 <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <KeyIcon />
+                    设置 API Key
+                 </h3>
+                 <button 
+                   onClick={() => setIsKeyModalOpen(false)}
+                   className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                 >
+                    <XMarkIcon />
+                 </button>
+              </div>
+              
+              <div className="p-6 space-y-5">
+                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-200">
+                    <span className="font-bold block mb-1">为什么需要 Key？</span>
+                    为了正常使用 AI 智能生成功能，请填入您的 Google Gemini API Key。您的密钥仅存储在本地浏览器中，不会上传至服务器。
+                 </p>
+                 
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">API Key</label>
+                    <input
+                      type="password"
+                      value={tempApiKey}
+                      onChange={(e) => setTempApiKey(e.target.value)}
+                      className="w-full bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm font-mono focus:ring-2 focus:ring-amber-400/50 focus:outline-none transition-all placeholder-slate-400 dark:text-white"
+                      placeholder="AIzaSy..."
+                    />
+                 </div>
+
+                 <div className="pt-2 flex justify-end gap-3">
+                     <button 
+                       onClick={() => setIsKeyModalOpen(false)}
+                       className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                     >
+                       取消
+                     </button>
+                     <button 
+                       onClick={handleSaveKey}
+                       className="px-6 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-white shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+                     >
+                       保存设置
+                     </button>
+                 </div>
+                 
+                 <div className="text-xs text-center text-slate-400 pt-2 border-t border-slate-100 dark:border-white/5 mt-4">
+                    没有 Key? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-500 transition-colors">去 Google AI Studio 免费申请</a>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* 左侧面板：输入、主题和生成 - 赛博玻璃风格 (使用黄色调) */}
       <div className="w-full lg:w-[400px] flex flex-col h-screen z-20 relative overflow-hidden
            bg-white/30 dark:bg-[#050505]/60 backdrop-blur-3xl
@@ -594,12 +687,23 @@ export default function App() {
             {/* 应用名称 */}
             <h1 className="text-2xl font-bold font-display tracking-tight text-slate-800 dark:text-white">灵感卡片</h1>
           </div>
-          <button 
-            onClick={toggleThemeMode}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"
-          >
-            {isDarkMode ? <SunIcon /> : <MoonIcon />}
-          </button>
+          <div className="flex items-center gap-2">
+             <button 
+                onClick={toggleThemeMode}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 transition-colors text-slate-700 dark:text-white"
+                title="切换日间/夜间模式"
+              >
+                {isDarkMode ? <SunIcon /> : <MoonIcon />}
+              </button>
+              {/* 恢复：API Key 设置按钮 */}
+              <button 
+                onClick={() => setIsKeyModalOpen(true)}
+                className={`p-2 rounded-full border transition-colors text-slate-700 dark:text-white ${userApiKey ? 'bg-amber-100/50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400' : 'bg-white/10 hover:bg-white/20 border-white/10'}`}
+                title="设置 API Key"
+              >
+                <KeyIcon />
+              </button>
+          </div>
         </div>
 
         {/* 主要内容 Flex 容器 */}

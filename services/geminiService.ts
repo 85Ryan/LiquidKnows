@@ -13,9 +13,16 @@ const METADATA_SCHEMA: Schema = {
   required: ["subtitle", "tags"],
 };
 
-export const generateMetadata = async (inputText: string): Promise<{ subtitle: string; tags: string[] }> => {
+export const generateMetadata = async (inputText: string, apiKey?: string): Promise<{ subtitle: string; tags: string[] }> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // 优先使用用户提供的 Key (前端输入)，否则尝试读取环境变量 (构建注入)
+    const key = apiKey || process.env.API_KEY;
+    
+    if (!key) {
+        throw new Error("未配置 API Key。请点击左上角的设置(钥匙图标)按钮输入您的 Google Gemini API Key。");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: key });
     
     // Limit input length to ensure efficiency
     const truncatedText = inputText.length > 8000 ? inputText.substring(0, 8000) + "..." : inputText;
