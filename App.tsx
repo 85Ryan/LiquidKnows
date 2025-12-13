@@ -14,6 +14,11 @@ const ChevronLeft = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" vi
 const ChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>;
 const KeyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>;
 const XMarkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
+const ExclamationCircleIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+  </svg>
+);
 
 // 卡片设置图标 (file-sliders)
 const SettingsIcon = () => (
@@ -358,6 +363,21 @@ export default function App() {
   // 临时状态，用于 Modal 输入框，避免每次输入都触发 Effect
   const [tempApiKey, setTempApiKey] = useState("");
 
+  // 新增：全局 Alert 状态
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'error' | 'success';
+    confirmText?: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error'
+  });
+
   // 打开 Modal 时，将当前 key 填入输入框
   useEffect(() => {
     if (isKeyModalOpen) {
@@ -477,12 +497,40 @@ export default function App() {
         setActiveIndex(0);
     } catch (e: any) {
       console.error(e);
-      // 如果错误消息包含 key 相关字眼，提示用户
-      if (e.message.includes("API Key")) {
-        alert(e.message);
-        setIsKeyModalOpen(true);
+      let errorMessage = e.message || "未知错误";
+
+      // 尝试解析 JSON 错误信息 (处理 API 返回的原始错误对象)
+      if (typeof errorMessage === 'string' && (errorMessage.includes('{') || errorMessage.includes('error'))) {
+          try {
+              const match = errorMessage.match(/\{.*\}/s);
+              if (match) {
+                 const errObj = JSON.parse(match[0]);
+                 if (errObj.error && errObj.error.message) {
+                     errorMessage = errObj.error.message;
+                 }
+              }
+          } catch (jsonErr) {
+              // 解析失败忽略
+          }
+      }
+
+      // 针对 API Key 问题的专门处理
+      if (errorMessage.includes("API Key") || errorMessage.includes("API key") || errorMessage.includes("403") || errorMessage.includes("400")) {
+        setAlertState({
+            isOpen: true,
+            title: "需要 API Key",
+            message: "未能检测到有效的 Google Gemini API Key，或者 Key 无效。请在设置中重新配置。",
+            type: 'error',
+            confirmText: "去设置",
+            onConfirm: () => setIsKeyModalOpen(true)
+        });
       } else {
-        alert("生成元数据失败，请检查网络或 API Key 配置");
+        setAlertState({
+            isOpen: true,
+            title: "生成失败",
+            message: `AI 服务调用出错: ${errorMessage}`,
+            type: 'error'
+        });
       }
     } finally {
       setIsLoading(false);
@@ -665,6 +713,47 @@ export default function App() {
                  </div>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* --- 全局 Alert 弹窗 (New) --- */}
+      {alertState.isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in-scale">
+            <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/20 transform transition-all">
+                <div className="p-6 flex flex-col items-center text-center">
+                    <div className={`mb-4 p-4 rounded-full ${alertState.type === 'error' ? 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-500'}`}>
+                        <ExclamationCircleIcon className="w-8 h-8" />
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                        {alertState.title}
+                    </h3>
+                    
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6 break-words w-full">
+                        {alertState.message}
+                    </p>
+
+                    <div className="flex gap-3 w-full">
+                        <button 
+                            onClick={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+                            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                        >
+                            取消
+                        </button>
+                        {alertState.onConfirm && (
+                             <button 
+                                onClick={() => {
+                                    setAlertState(prev => ({ ...prev, isOpen: false }));
+                                    alertState.onConfirm?.();
+                                }}
+                                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-400 hover:to-pink-500 shadow-lg shadow-red-500/30 transition-all active:scale-95"
+                            >
+                                {alertState.confirmText || "确认"}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
       )}
 
