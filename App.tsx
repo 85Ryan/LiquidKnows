@@ -772,7 +772,7 @@ export default function App() {
         <div className="p-6 border-b border-white/10 flex justify-between items-center flex-shrink-0 relative z-10">
           <div className="flex items-center gap-3">
             {/* Logo: 无背景，直接使用优化后的 Icon */}
-            <LogoIcon className="w-9 h-9 drop-shadow-md" />
+            <LogoIcon className="w-11 h-11 drop-shadow-md" />
             {/* 应用名称 */}
             <h1 className="text-2xl font-bold font-display tracking-tight text-slate-800 dark:text-white">灵感卡片</h1>
           </div>
